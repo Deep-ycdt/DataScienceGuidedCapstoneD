@@ -1,0 +1,155 @@
+=======================================================================
+  MEDICAL COST PREDICTION — MODEL METRICS FILE
+  Capstone Two | Data Science Foundations to Core Career Track
+=======================================================================
+
+-----------------------------------------------------------------------
+PROBLEM OVERVIEW
+-----------------------------------------------------------------------
+Problem Type  : Regression (continuous target)
+Target        : annual_medical_cost  (range: ~$500 – $85,000)
+Dataset Size  : 5,000 rows x 20 features
+Train / Test  : 4,000 / 1,000  (80/20 split, random_state=42)
+
+-----------------------------------------------------------------------
+PREPROCESSING STEPS
+-----------------------------------------------------------------------
+Missing Values : insurance_type NaN → filled with "None"
+                 insurance_coverage_pct 0 for insured patients → NaN → 0
+Encoding       : pd.get_dummies(drop_first=True) on 5 categorical cols
+                 → 7 binary dummy columns created
+Scaling        : StandardScaler applied to 14 continuous numeric cols
+                 Binary/dummy columns left on 0/1 scale
+
+-----------------------------------------------------------------------
+FEATURES USED (22 total after encoding)
+-----------------------------------------------------------------------
+Continuous (scaled):
+  age, bmi, daily_steps, sleep_hours, stress_level,
+  doctor_visits_per_year, hospital_admissions, medication_count,
+  insurance_coverage_pct, previous_year_cost
+
+Binary / Dummy (unscaled):
+  diabetes, hypertension, heart_disease, asthma,
+  gender_Male, smoker_Yes,
+  physical_activity_level_Medium, physical_activity_level_High,
+  insurance_type_Government, insurance_type_None,
+  city_type_Rural, city_type_Semi-Urban
+
+-----------------------------------------------------------------------
+MODEL 1 — RIDGE REGRESSION  *** FINAL SELECTED MODEL ***
+-----------------------------------------------------------------------
+Algorithm         : Ridge Regression (L2 regularization)
+Hyperparameters   : alpha = 10.0
+Tuning Method     : GridSearchCV, 5-fold CV
+                    Grid: alpha in {0.01, 0.1, 1.0, 10.0, 100.0}
+
+PERFORMANCE METRICS:
+  CV RMSE (mean)  :  $1,798
+  CV RMSE (std)   :  $39
+  Test MAE        :  $1,444
+  Test RMSE       :  $1,780
+  Test R²         :  0.9305
+  Test MAPE       :  6.30%
+
+TOP FEATURES (by |coefficient| — approximate):
+  1. previous_year_cost      (strong positive)
+  2. hospital_admissions     (positive)
+  3. smoker_Yes              (positive)
+  4. medication_count        (positive)
+  5. age                     (positive)
+  6. heart_disease           (positive)
+  7. bmi                     (positive)
+  8. diabetes                (positive)
+  9. daily_steps             (negative)
+  10. sleep_hours            (negative)
+
+SELECTION RATIONALE:
+  - Highest R² (0.9305) on test set
+  - Lowest RMSE ($1,780) and MAE ($1,444)
+  - Lowest CV RMSE, indicating stable generalization
+  - Interpretable signed coefficients for stakeholder communication
+
+-----------------------------------------------------------------------
+MODEL 2 — RANDOM FOREST REGRESSOR
+-----------------------------------------------------------------------
+Algorithm         : Random Forest
+Hyperparameters   : n_estimators=200, max_depth=20, min_samples_split=2
+Tuning Method     : GridSearchCV, 5-fold CV
+Random State      : 42
+
+PERFORMANCE METRICS:
+  CV RMSE (mean)  :  $2,287
+  CV RMSE (std)   :  $59
+  Test MAE        :  $1,776
+  Test RMSE       :  $2,221
+  Test R²         :  0.8918
+  Test MAPE       :  7.66%
+
+TOP FEATURES (by mean decrease impurity):
+  1. previous_year_cost
+  2. age
+  3. hospital_admissions
+  4. medication_count
+  5. bmi
+
+-----------------------------------------------------------------------
+MODEL 3 — GRADIENT BOOSTING REGRESSOR
+-----------------------------------------------------------------------
+Algorithm         : Gradient Boosting (scikit-learn)
+Hyperparameters   : n_estimators=200, learning_rate=0.10, max_depth=5
+Tuning Method     : GridSearchCV, 5-fold CV
+                    Grid: n_estimators in {100,200},
+                          learning_rate in {0.05, 0.10},
+                          max_depth in {3, 5}
+Random State      : 42
+
+PERFORMANCE METRICS:
+  CV RMSE (mean)  :  $2,038
+  CV RMSE (std)   :  $48
+  Test MAE        :  $1,596
+  Test RMSE       :  $2,002
+  Test R²         :  0.9121
+  Test MAPE       :  6.86%
+
+TOP FEATURES (by relative importance):
+  1. previous_year_cost
+  2. age
+  3. hospital_admissions
+  4. medication_count
+  5. bmi
+  6. smoker_Yes
+  7. stress_level
+  8. medication_count
+  9. daily_steps
+  10. insurance_coverage_pct
+
+-----------------------------------------------------------------------
+MODEL COMPARISON SUMMARY
+-----------------------------------------------------------------------
+Model               CV RMSE    Test MAE   Test RMSE   Test R²   MAPE
+---                 -------    --------   ---------   -------   ----
+Ridge Regression*   $1,798     $1,444     $1,780      0.9305    6.30%
+Gradient Boosting   $2,038     $1,596     $2,002      0.9121    6.86%
+Random Forest       $2,287     $1,776     $2,221      0.8918    7.66%
+
+* = Selected Final Model
+
+-----------------------------------------------------------------------
+FINAL MODEL ERROR ANALYSIS (Ridge Regression on Test Set)
+-----------------------------------------------------------------------
+Median Absolute Error           : ~$1,140
+90th Percentile Absolute Error  : ~$3,500
+% predictions within $1,000     : ~55%
+% predictions within $2,500     : ~82%
+
+-----------------------------------------------------------------------
+LIBRARIES & VERSIONS
+-----------------------------------------------------------------------
+scikit-learn  : used for all models, GridSearchCV, StandardScaler
+pandas        : data manipulation
+numpy         : numerical operations
+matplotlib    : visualizations
+seaborn       : EDA visualizations
+
+=======================================================================
