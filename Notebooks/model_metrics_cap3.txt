@@ -1,0 +1,73 @@
+CAPSTONE PROJECT - MODEL METRICS SUMMARY
+Predicting Customer Value Tier (High / Medium / Low)
+============================================================
+
+DATASET
+------------------------------------------------------------
+Source: Customer Shopping Trends Dataset (Kaggle)
+Rows: 3900
+Features used for modelling (after encoding): 38
+Train / Test split: 3120 / 780 (80/20, stratified)
+
+TARGET VARIABLE
+------------------------------------------------------------
+Name: customer_value_tier (Low / Medium / High)
+Type: Categorical (3-class, ordinal)
+Definition: Proxy label engineered from a weighted Customer Value Score:
+  customer_value_score = 0.45 * Purchase Amount (scaled)
+                        + 0.35 * Previous Purchases (scaled)
+                        + 0.20 * Subscription Status (Yes=1/No=0)
+  Tiers assigned via terciles (pd.qcut, q=3)
+
+PREPROCESSING
+------------------------------------------------------------
+- Dropped: Customer ID, Item Purchased, Location, Color (high cardinality),
+  customer_value_score, purchase_amount_scaled, previous_purchases_scaled,
+  is_subscribed (intermediate columns used only to construct the target)
+- Categorical features one-hot encoded (pd.get_dummies, drop_first=True)
+- Numeric features standardized (StandardScaler): ['Age', 'Purchase Amount (USD)', 'Review Rating', 'Previous Purchases']
+
+MODELS TRAINED
+------------------------------------------------------------
+1. Logistic Regression  (max_iter=1000, random_state=42)
+2. Decision Tree        (max_depth=5, random_state=42)
+3. Random Forest        (n_estimators=100, random_state=42)
+
+MODEL COMPARISON (on held-out test set)
+------------------------------------------------------------
+              Model  Accuracy  Macro F1  MAE (tier codes)
+Logistic Regression     0.979     0.979             0.029
+      Decision Tree     0.897     0.898             0.153
+      Random Forest     0.924     0.925             0.117
+
+Metric definitions:
+  Accuracy        = % of customers placed in the correct tier
+  Macro F1        = average F1-score across Low/Medium/High (equal weight per tier)
+  MAE (tier codes)= mean absolute error treating Low=0, Medium=1, High=2;
+                    measures how many tiers off a wrong prediction typically is
+
+FINAL MODEL: Logistic Regression
+------------------------------------------------------------
+Hyperparameters: max_iter=1000, random_state=42 (all other params default)
+
+Selection criterion: highest Macro F1-score on the test set
+
+FINAL MODEL PERFORMANCE (Test Set)
+------------------------------------------------------------
+              precision    recall  f1-score   support
+
+         Low       0.99      0.98      0.99       260
+      Medium       0.98      0.98      0.98       261
+        High       0.97      0.97      0.97       259
+
+    accuracy                           0.98       780
+   macro avg       0.98      0.98      0.98       780
+weighted avg       0.98      0.98      0.98       780
+
+TOP 5 MOST IMPORTANT FEATURES
+------------------------------------------------------------
+  Subscription Status_Yes                  6.3675
+  Purchase Amount (USD)                    4.6580
+  Previous Purchases                       3.6485
+  Frequency of Purchases_Every 3 Months    0.2614
+  Promo Code Used_Yes                      0.2332
