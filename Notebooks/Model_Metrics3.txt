@@ -1,0 +1,144 @@
+================================================================================
+  CAPSTONE 3 — MODEL METRICS FILE
+  Predicting High-Value Customers at BigMart
+  Data Science Career Track | June 2026
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+  PROBLEM SETUP
+────────────────────────────────────────────────────────────────────────────────
+  Target Variable       : customer_value_tier
+  Target Classes        : High | Medium | Low
+  Class Distribution    : ~1,300 customers per tier (balanced terciles)
+  Dataset Size          : 3,900 rows x 19 columns
+  Train / Test Split    : 80% train / 20% test (stratified by class)
+  Random Seed           : 42
+
+────────────────────────────────────────────────────────────────────────────────
+  TARGET CONSTRUCTION — CUSTOMER VALUE SCORE
+────────────────────────────────────────────────────────────────────────────────
+  Formula:
+    Score = 0.45 x Purchase Amount (scaled)
+          + 0.35 x Previous Purchases (scaled)
+          + 0.20 x Subscription Flag (1=Yes, 0=No)
+
+  Scaling method        : Min-max scaling to [0, 1] for numeric inputs
+  Tier assignment       : pd.qcut(score, q=3) → Low / Medium / High terciles
+
+────────────────────────────────────────────────────────────────────────────────
+  FEATURE MATRIX
+────────────────────────────────────────────────────────────────────────────────
+  Total features after encoding  : ~27 (after one-hot encoding)
+
+  Numeric features scaled (StandardScaler, fit on train only):
+    - Age
+    - Review Rating
+
+  Categorical features one-hot encoded (drop_first=True):
+    - Gender
+    - Category
+    - Season
+    - Payment Method
+    - Shipping Type
+    - Discount Applied
+    - Promo Code Used
+    - Size
+    - Frequency of Purchases
+
+  Features DROPPED — target leakage prevention:
+    - Purchase Amount (USD)       [used to build target score]
+    - Previous Purchases          [used to build target score]
+    - Subscription Status         [used to build target score]
+    - customer_value_score        [intermediate engineered column]
+    - purchase_amount_scaled      [intermediate engineered column]
+    - previous_purchases_scaled   [intermediate engineered column]
+    - is_subscribed               [intermediate engineered column]
+
+  Features DROPPED — high cardinality / low signal:
+    - Customer ID                 [unique identifier, no predictive signal]
+    - Item Purchased              [25 unique values — sparse dummies]
+    - Location                    [50 unique values — sparse dummies]
+    - Color                       [25 unique values — sparse dummies]
+
+────────────────────────────────────────────────────────────────────────────────
+  MODEL 1: LOGISTIC REGRESSION
+────────────────────────────────────────────────────────────────────────────────
+  Algorithm             : sklearn.linear_model.LogisticRegression
+  Hyperparameters       : max_iter=1000 | random_state=42 | all others default
+  Accuracy  (test set)  : 0.390
+  Macro F1  (test set)  : 0.389
+  Notes                 : Linear baseline; sensitive to feature scale;
+                          StandardScaler applied before training
+
+────────────────────────────────────────────────────────────────────────────────
+  MODEL 2: DECISION TREE
+────────────────────────────────────────────────────────────────────────────────
+  Algorithm             : sklearn.tree.DecisionTreeClassifier
+  Hyperparameters       : max_depth=5 | random_state=42 | all others default
+  Accuracy  (test set)  : 0.413
+  Macro F1  (test set)  : 0.411
+  Notes                 : Depth limited to 5 for generalisability and
+                          interpretability; single tree
+
+────────────────────────────────────────────────────────────────────────────────
+  MODEL 3: RANDOM FOREST  ★ FINAL MODEL ★
+────────────────────────────────────────────────────────────────────────────────
+  Algorithm             : sklearn.ensemble.RandomForestClassifier
+  Hyperparameters:
+    n_estimators        : 100
+    max_depth           : None  (trees grown fully by default)
+    min_samples_split   : 2     (default)
+    min_samples_leaf    : 1     (default)
+    max_features        : sqrt  (default for classifiers)
+    bootstrap           : True  (default)
+    class_weight        : None  (classes are balanced; no weighting needed)
+    random_state        : 42
+
+  Accuracy  (test set)  : 0.432
+  Macro F1  (test set)  : 0.431
+  Selection rationale   : Highest Macro F1 of the three models; ensemble
+                          reduces overfitting vs. single tree; native
+                          feature importances support interpretability
+
+────────────────────────────────────────────────────────────────────────────────
+  MODEL COMPARISON SUMMARY
+────────────────────────────────────────────────────────────────────────────────
+  Model                    Accuracy   Macro F1   Selected?
+  -----------------------  ---------  ---------  ----------
+  Logistic Regression        0.390      0.389      No
+  Decision Tree (depth=5)    0.413      0.411      No
+  Random Forest (100 trees)  0.432      0.431      YES ★
+
+  Primary metric   : Macro F1 — treats all three tiers equally; preferred
+                     for balanced multiclass problems
+  Secondary metric : Accuracy — percentage of customers correctly tiered
+
+────────────────────────────────────────────────────────────────────────────────
+  TOP FEATURE IMPORTANCES — RANDOM FOREST FINAL MODEL
+────────────────────────────────────────────────────────────────────────────────
+  Rank  Feature                            Importance
+  ----  --------------------------------   ----------
+   1    Review Rating                        0.138
+   2    Age                                  0.121
+   3    Frequency of Purchases (encoded)     0.098
+   4    Season — Fall (encoded)              0.087
+   5    Payment Method — PayPal (encoded)    0.079
+   6    Category — Footwear (encoded)        0.065
+   7    Shipping Type — Express (encoded)    0.058
+   8    Gender — Male (encoded)              0.051
+
+  Note: Source features used to engineer the target label (Purchase Amount,
+  Previous Purchases, Subscription Status) were excluded from training to
+  prevent leakage. Importances reflect genuine patterns in the remaining
+  customer profile features.
+
+────────────────────────────────────────────────────────────────────────────────
+  NOTEBOOKS IN REPOSITORY
+────────────────────────────────────────────────────────────────────────────────
+  Capstone3_Data_Wrangling.ipynb            Steps 1–2: Collection, cleaning,
+                                            feature engineering
+  Capstone3_EDA.ipynb                       Step 3: EDA and visualisations
+  Capstone3_Preprocessing_Modeling_new.ipynb Steps 4–5: Encoding, scaling,
+                                            train/test split, modeling
+
+================================================================================
